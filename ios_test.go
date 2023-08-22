@@ -12,14 +12,14 @@ func TestLoadEmptyFilenme(t *testing.T) {
 }
 
 func TestLoadFilename(t *testing.T) {
-	_, err := LoadConfig("../../test_data/sample.ios")
+	_, err := LoadConfig("./test_data/sample.ios")
 	if err != nil {
 		t.Error(err)
 	}
 }
 
 func TestGetAcl(t *testing.T) {
-	cfg, _ := LoadConfig("../../test_data/sample.ios")
+	cfg, _ := LoadConfig("./test_data/sample.ios")
 	_, err := GetACL("103", cfg)
 	if err != nil {
 		t.Error(err)

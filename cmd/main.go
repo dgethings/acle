@@ -1,9 +1,10 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 
-	"github.com/dgethings/acle/parse/ios"
+	ios "github.com/dgethings/acle"
 )
 
 type Protocol struct {
@@ -27,14 +28,17 @@ func (p Protocol) equals(other Protocol) bool {
 }
 
 func main() {
-	f := "./test_data/sample.ios"
-	acl_id := "104"
-	cfg, err := ios.LoadConfig(f)
+	f := flag.String("cfg", "", "Path to config file")
+	acl_id := flag.String("acl_id", "", "Name or number of ACL")
+	acl_type := flag.String("acl_type", "standard", "Type of ACL. Either 'standard' or 'extended', default is 'standard'")
+	flag.Parse()
+	cfg, err := ios.LoadConfig(*f)
 	if err != nil {
 		fmt.Printf("%v\n", err)
+		flag.Usage()
 		return
 	}
-	acl, err := ios.GetACL(acl_id, cfg)
+	acl, err := ios.GetACL(acl_id, cfg, acl_type)
 	if err != nil {
 		fmt.Printf("%v\n", err)
 		return

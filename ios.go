@@ -16,10 +16,10 @@ func LoadConfig(f string) ([]byte, error) {
 	return b, nil
 }
 
-func GetACL(name string, cfg []byte) ([]string, error) {
+func GetACL(name *string, cfg []byte, acl_type *string) ([]string, error) {
 	c := string(cfg[:])
 	var acl []string
-	substr := fmt.Sprintf("access-list %s", name)
+	substr := fmt.Sprintf("access-list %s", *name)
 	for _, l := range strings.Split(c, "\n") {
 		if strings.Contains(l, substr) {
 			acl = append(acl, l)
@@ -54,10 +54,18 @@ const (
 )
 
 func (a Action) String() string {
+	var action string
 	switch a {
 	case Permit:
-		return "permit"
+		action = "permit"
 	case Deny:
-		return "deny"
+		action = "deny"
 	}
+	return action
 }
+
+type IPProtocol struct{}
+
+type IPNetwork struct{}
+
+type TransportProtocol struct{}
