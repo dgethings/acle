@@ -3,6 +3,9 @@ package main
 import (
 	"flag"
 	"fmt"
+	"io"
+	"log"
+	"os"
 
 	ios "github.com/dgethings/acle"
 )
@@ -27,16 +30,36 @@ func (p Protocol) equals(other Protocol) bool {
 	return p.number == other.number
 }
 
-func main() {
-	f := flag.String("cfg", "", "Path to config file")
-	acl_id := flag.String("acl_id", "", "Name or number of ACL")
-	acl_type := flag.String("acl_type", "standard", "Type of ACL. Either 'standard' or 'extended', default is 'standard'")
-	flag.Parse()
-	cfg, err := ios.LoadConfig(*f)
+func readFile(f string) string {
+	b, err := os.ReadFile(f)
 	if err != nil {
-		fmt.Printf("%v\n", err)
-		flag.Usage()
-		return
+		log.Fatalf("Failed to read %s, got %v\n", f, err)
+	}
+	return string(b)
+}
+
+func readStdin() string {
+	stdin, err := io.ReadAll(os.Stdin)
+
+	if err != nil {
+		log.Fatalf("Failed to read stdin, got %v", err)
+	}
+	return string(stdin)
+}
+
+func main() {
+	var cfg string
+	var f string
+	flag.StringVar(&f, "if", "", "Path to input config file")
+	var acl_id string
+	flag.StringVar(&acl_id, "acl_id", "", "Name or number of ACL")
+	var acl_type string
+	flag.StringVar(&acl_type, "acl_type", "standard", "Type of ACL. Either 'standard' or 'extended', default is 'standard'")
+	flag.Parse()
+	if f != "" {
+		cfg = readFile(f)
+	} else {
+		cfg = readStdin()
 	}
 	acl, err := ios.GetACL(acl_id, cfg, acl_type)
 	if err != nil {

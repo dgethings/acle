@@ -3,7 +3,7 @@ build:
 	chmod +x bin/acle
 
 run: build
-	./bin/acle -cfg ./test_data/sample.ios -acl_id 103
+	./bin/acle -if ./test_data/sample.ios -acl_id 103
 
 test:
 	go test -v

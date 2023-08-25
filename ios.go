@@ -3,24 +3,13 @@ package ios
 import (
 	"errors"
 	"fmt"
-	"os"
 	"strings"
 )
 
-func LoadConfig(f string) ([]byte, error) {
-	b, err := os.ReadFile(f)
-	if err != nil {
-		msg := fmt.Sprintf("Failed to read %s, got %v\n", f, err)
-		return nil, errors.New(msg)
-	}
-	return b, nil
-}
-
-func GetACL(name *string, cfg []byte, acl_type *string) ([]string, error) {
-	c := string(cfg[:])
+func GetACL(name string, cfg string, acl_type string) ([]string, error) {
 	var acl []string
-	substr := fmt.Sprintf("access-list %s", *name)
-	for _, l := range strings.Split(c, "\n") {
+	substr := fmt.Sprintf("access-list %s", name)
+	for _, l := range strings.Split(cfg, "\n") {
 		if strings.Contains(l, substr) {
 			acl = append(acl, l)
 		}
