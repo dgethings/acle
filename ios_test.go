@@ -1,6 +1,7 @@
 package ios
 
 import (
+	"fmt"
 	"os"
 	"testing"
 )
@@ -19,4 +20,15 @@ func TestGetAcl(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
+}
+
+func TestNewACL(t *testing.T) {
+	b, _ := os.ReadFile("./test_data/sample.ios")
+	cfg := string(b)
+	s, _ := GetACL("103", cfg, "standard")
+	acl, err := NewACL(s)
+	if err != nil {
+		t.Error(err)
+	}
+	fmt.Print(acl)
 }

@@ -3,6 +3,7 @@ package ios
 import (
 	"errors"
 	"fmt"
+	"strconv"
 	"strings"
 )
 
@@ -22,17 +23,53 @@ func GetACL(name string, cfg string, acl_type string) ([]string, error) {
 }
 
 type ACL struct {
+	id  int8
 	ace []ACE
 }
 
+func NewACL(s []string) (ACL, error) {
+	acl := ACL{}
+	for i, ace := range s {
+		v := strings.Split(ace, " ")
+		id, err := strconv.ParseInt(v[1], 10, 8)
+		if err != nil {
+			msg := fmt.Sprintf("Failed to parse ACL ID from %s, got %v", ace, err)
+			return acl, errors.New(msg)
+		}
+		acl.id = int8(id)
+		var action Action
+		switch v[2] {
+		case "permit":
+			action = Permit
+		case "deny":
+			action = Deny
+		}
+		a := ACE{int8(i), action}
+		acl.ace = append(acl.ace, a)
+	}
+	return acl, nil
+}
+
+func (acl ACL) String() string {
+	var s string
+	for _, ace := range acl.ace {
+		s = fmt.Sprintf("access-list %d %s", acl.id, ace)
+	}
+	return s
+}
+
 type ACE struct {
-	Index      int
-	Action     Action
-	Protocol   IPProtocol
-	SrcPrefix  IPNetwork
-	SrcPort    TransportProtocol
-	DestPrefix IPNetwork
-	DestPort   TransportProtocol
+	Index  int8
+	Action Action
+	// Protocol   IPProtocol
+	// SrcPrefix  IPNetwork
+	// SrcPort    TransportProtocol
+	// DestPrefix IPNetwork
+	// DestPort   TransportProtocol
+}
+
+func (ace ACE) String() string {
+	return fmt.Sprintf("%s", ace.Action)
 }
 
 type Action int8
