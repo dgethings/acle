@@ -132,23 +132,23 @@ type IPProtocol struct {
 	number int8
 }
 
-func (p *IPProtocol) String() string {
+func (p IPProtocol) String() string {
 	return p.name
 }
 
-func (p *IPProtocol) Integer() int8 {
+func (p IPProtocol) Integer() int8 {
 	return p.number
 }
 
-func (p *IPProtocol) Equals(o IPProtocol) bool {
+func (p IPProtocol) Equals(o IPProtocol) bool {
 	return p.number == o.number
 }
 
-func (p *IPProtocol) Gter(o IPProtocol) bool {
+func (p IPProtocol) Gter(o IPProtocol) bool {
 	return p.number > o.number
 }
 
-func (p *IPProtocol) Lter(o IPProtocol) bool {
+func (p IPProtocol) Lter(o IPProtocol) bool {
 	return p.number < o.number
 }
 
