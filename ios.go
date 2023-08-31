@@ -37,17 +37,38 @@ func NewACL(s []string) (ACL, error) {
 			return acl, errors.New(msg)
 		}
 		acl.id = int8(id)
-		var action Action
-		switch v[2] {
-		case "permit":
-			action = Permit
-		case "deny":
-			action = Deny
-		}
-		a := ACE{int8(i), action}
+		action := parseAction(v[2])
+		proto := parseIPProtocol(v[3])
+		a := ACE{int8(i), action, proto}
 		acl.ace = append(acl.ace, a)
 	}
 	return acl, nil
+}
+
+func parseAction(s string) Action {
+	var action Action
+	switch s {
+	case "permit":
+		action = Permit
+	case "deny":
+		action = Deny
+	}
+	return action
+}
+
+func parseIPProtocol(s string) IPProtocol {
+	var proto IPProtocol
+	switch s {
+	case IP.name:
+		proto = IP
+	case ICMP.name:
+		proto = ICMP
+	case UDP.name:
+		proto = UDP
+	case ESP.name:
+		proto = ESP
+	}
+	return proto
 }
 
 func (acl ACL) String() string {
@@ -59,9 +80,9 @@ func (acl ACL) String() string {
 }
 
 type ACE struct {
-	Index  int8
-	Action Action
-	// Protocol   IPProtocol
+	Index    int8
+	Action   Action
+	Protocol IPProtocol
 	// SrcPrefix  IPNetwork
 	// SrcPort    TransportProtocol
 	// DestPrefix IPNetwork
@@ -69,7 +90,7 @@ type ACE struct {
 }
 
 func (ace ACE) String() string {
-	return fmt.Sprintf("%s", ace.Action)
+	return fmt.Sprintf("%s %s", ace.Action, ace.Protocol.String())
 }
 
 type Action int8
@@ -90,7 +111,51 @@ func (a Action) String() string {
 	return action
 }
 
-type IPProtocol struct{}
+type Stringer interface {
+	String() string
+}
+type Integerer interface {
+	Integer() int8
+}
+type Equator interface {
+	Equals() bool
+}
+type Gter interface {
+	Gt() bool
+}
+type Lter interface {
+	Lt() bool
+}
+
+type IPProtocol struct {
+	name   string
+	number int8
+}
+
+func (p *IPProtocol) String() string {
+	return p.name
+}
+
+func (p *IPProtocol) Integer() int8 {
+	return p.number
+}
+
+func (p *IPProtocol) Equals(o IPProtocol) bool {
+	return p.number == o.number
+}
+
+func (p *IPProtocol) Gter(o IPProtocol) bool {
+	return p.number > o.number
+}
+
+func (p *IPProtocol) Lter(o IPProtocol) bool {
+	return p.number < o.number
+}
+
+var IP = IPProtocol{"ip", 0}
+var ICMP = IPProtocol{"icmp", 1}
+var UDP = IPProtocol{"udp", 17}
+var ESP = IPProtocol{"esp", 50}
 
 type IPNetwork struct{}
 
