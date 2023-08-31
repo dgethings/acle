@@ -51,11 +51,11 @@ func NewACL(s []string) (ACL, error) {
 }
 
 func (acl ACL) String() string {
-	var s string
+	var s []string
 	for _, ace := range acl.ace {
-		s = fmt.Sprintf("access-list %d %s", acl.id, ace)
+		s = append(s, fmt.Sprintf("access-list %d %s", acl.id, ace))
 	}
-	return s
+	return strings.Join(s, "\n")
 }
 
 type ACE struct {

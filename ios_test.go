@@ -3,6 +3,7 @@ package ios
 import (
 	"fmt"
 	"os"
+	"strings"
 	"testing"
 )
 
@@ -30,5 +31,9 @@ func TestNewACL(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	fmt.Print(acl)
+	cfg_acl := strings.Join(s, "\n")
+	s_acl := fmt.Sprintf("%s", acl)
+	if s_acl != cfg_acl {
+		t.Errorf("Expected:\n%s\nActual:\n%s", cfg_acl, s_acl)
+	}
 }

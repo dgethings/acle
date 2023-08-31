@@ -35,7 +35,7 @@ func readFile(f string) string {
 	if err != nil {
 		log.Fatalf("Failed to read %s, got %v\n", f, err)
 	}
-	return string(b)
+	return string(b[:])
 }
 
 func readStdin() string {
@@ -61,12 +61,14 @@ func main() {
 	} else {
 		cfg = readStdin()
 	}
-	acl, err := ios.GetACL(acl_id, cfg, acl_type)
+	s, err := ios.GetACL(acl_id, cfg, acl_type)
 	if err != nil {
-		fmt.Printf("%v\n", err)
+		log.Fatal(err)
 		return
 	}
-	for _, l := range acl {
-		fmt.Println(l)
+	acl, err := ios.NewACL(s)
+	if err != nil {
+		log.Fatal(err)
 	}
+	fmt.Print(acl)
 }
