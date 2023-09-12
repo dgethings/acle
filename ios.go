@@ -179,28 +179,34 @@ func (ip IPNetwork) String() string {
 }
 
 func parseSrc(v []string) (IPNetwork, error) {
-	if v[0] == "any" {
+	var src IPNetwork
+	var msg string
+	switch v[0] {
+	case "any":
 		ip, err := netip.ParseAddr("0.0.0.0")
 		if err != nil {
-			msg := fmt.Sprintf("Somehow 0.0.0.0 is not a valid IP: %v", err)
-			return IPNetwork{}, errors.New(msg)
+			msg = fmt.Sprintf("Somehow 0.0.0.0 is not a valid IP: %v", err)
 		}
-		return IPNetwork{ip: ip, isHost: false, isAny: true}, nil
-	}
-	if v[0] == "host" {
+		src = IPNetwork{ip: ip, isHost: false, isAny: true}
+
+	case "host":
 		ip, err := netip.ParseAddr(v[1])
 		if err != nil {
-			msg := fmt.Sprintf("%s invalid host IP: %v", v[1], err)
-			return IPNetwork{}, errors.New(msg)
+			msg = fmt.Sprintf("%s invalid host IP: %v", v[1], err)
 		}
-		return IPNetwork{ip: ip, isHost: true, isAny: false}, nil
+		src = IPNetwork{ip: ip, isHost: true, isAny: false}
+	default:
+		ip, err := netip.ParseAddr(v[0])
+		if err != nil {
+			msg = fmt.Sprintf("%s is not a valid IP address: %v", v[0], err)
+		}
+		src = IPNetwork{ip: ip, isHost: false, isAny: false}
+
 	}
-	ip, err := netip.ParseAddr(v[0])
-	if err != nil {
-		msg := fmt.Sprintf("%s is not a valid IP address: %v", v[0], err)
-		return IPNetwork{}, errors.New(msg)
+	if src.ip.IsValid() {
+		return src, nil
 	}
-	return IPNetwork{ip: ip, isHost: false, isAny: false}, nil
+	return src, errors.New(msg)
 }
 
 type TransportProtocol struct{}
