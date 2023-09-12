@@ -3,6 +3,7 @@ package ios
 import (
 	"errors"
 	"fmt"
+	"net/netip"
 	"strconv"
 	"strings"
 )
@@ -39,7 +40,11 @@ func NewACL(s []string) (ACL, error) {
 		acl.id = int8(id)
 		action := parseAction(v[2])
 		proto := parseIPProtocol(v[3])
-		a := ACE{int8(i), action, proto}
+		src, err := parseSrc(v[4:])
+		if err != nil {
+			return acl, err
+		}
+		a := ACE{int8(i), action, proto, src}
 		acl.ace = append(acl.ace, a)
 	}
 	return acl, nil
@@ -80,17 +85,17 @@ func (acl ACL) String() string {
 }
 
 type ACE struct {
-	Index    int8
-	Action   Action
-	Protocol IPProtocol
-	// SrcPrefix  IPNetwork
+	Index     int8
+	Action    Action
+	Protocol  IPProtocol
+	SrcPrefix IPNetwork
 	// SrcPort    TransportProtocol
 	// DestPrefix IPNetwork
 	// DestPort   TransportProtocol
 }
 
 func (ace ACE) String() string {
-	return fmt.Sprintf("%s %s", ace.Action, ace.Protocol.String())
+	return fmt.Sprintf("%s %s %s", ace.Action, ace.Protocol.String(), ace.SrcPrefix.String())
 }
 
 type Action int8
@@ -157,6 +162,45 @@ var ICMP = IPProtocol{"icmp", 1}
 var UDP = IPProtocol{"udp", 17}
 var ESP = IPProtocol{"esp", 50}
 
-type IPNetwork struct{}
+type IPNetwork struct {
+	ip     netip.Addr
+	isHost bool
+	isAny  bool
+}
+
+func (ip IPNetwork) String() string {
+	if ip.isAny {
+		return "any"
+	}
+	if ip.isHost {
+		return fmt.Sprintf("host %s", ip.ip)
+	}
+	return fmt.Sprintf("%s 0.0.0.255", ip.ip)
+}
+
+func parseSrc(v []string) (IPNetwork, error) {
+	if v[0] == "any" {
+		ip, err := netip.ParseAddr("0.0.0.0")
+		if err != nil {
+			msg := fmt.Sprintf("Somehow 0.0.0.0 is not a valid IP: %v", err)
+			return IPNetwork{}, errors.New(msg)
+		}
+		return IPNetwork{ip: ip, isHost: false, isAny: true}, nil
+	}
+	if v[0] == "host" {
+		ip, err := netip.ParseAddr(v[1])
+		if err != nil {
+			msg := fmt.Sprintf("%s invalid host IP: %v", v[1], err)
+			return IPNetwork{}, errors.New(msg)
+		}
+		return IPNetwork{ip: ip, isHost: true, isAny: false}, nil
+	}
+	ip, err := netip.ParseAddr(v[0])
+	if err != nil {
+		msg := fmt.Sprintf("%s is not a valid IP address: %v", v[0], err)
+		return IPNetwork{}, errors.New(msg)
+	}
+	return IPNetwork{ip: ip, isHost: false, isAny: false}, nil
+}
 
 type TransportProtocol struct{}
