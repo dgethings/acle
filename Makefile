@@ -7,3 +7,8 @@ run: build
 
 test:
 	go test -v
+
+coverage:
+	go test -coverprofile=c.out
+	go tool cover -func=c.out
+	rm c.out
