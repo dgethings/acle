@@ -44,6 +44,25 @@ func TestParseAction(t *testing.T) {
 	}
 }
 
+func TestParseAddr(t *testing.T) {
+	type test struct {
+		input []string
+		want  string
+	}
+
+	tests := []test{
+		{input: []string{"any", "foo"}, want: "any"},
+		{input: []string{"host 192.168.0.1", "foo"}, want: "host 192.168.0.1"},
+	}
+
+	for i, tc := range tests {
+		got, _, err := parseAddr(tc.input)
+		if fmt.Sprintf("%s", got) != tc.want {
+			t.Errorf("test %d: expected: %s, got: %s, error: %v", i+1, tc.want, got, err)
+		}
+	}
+}
+
 // func TestNewACL(t *testing.T) {
 // 	b, _ := os.ReadFile("./test_data/sample.ios")
 // 	cfg := string(b)
