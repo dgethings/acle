@@ -187,7 +187,7 @@ func parseTransportProtocol(v []string) (TransportProtocol, []string, error) {
 }
 
 type IPNetwork struct {
-	ip     netip.Addr
+	ip     netip.Prefix
 	isHost bool
 	isAny  bool
 }
@@ -197,9 +197,9 @@ func (ip IPNetwork) String() string {
 		return "any"
 	}
 	if ip.isHost {
-		return fmt.Sprintf("host %s", ip.ip)
+		return fmt.Sprintf("host %s", ip.ip.Addr())
 	}
-	return fmt.Sprintf("%s 0.0.0.255", ip.ip)
+	return fmt.Sprintf("%s %s", ip.ip.Addr(), wildcardFromPrefix(ip.ip.Bits()))
 }
 
 func parseAddr(v []string) (IPNetwork, []string, error) {
@@ -208,31 +208,84 @@ func parseAddr(v []string) (IPNetwork, []string, error) {
 	var remaining []string
 	switch v[0] {
 	case "any":
-		ip, err := netip.ParseAddr("0.0.0.0")
+		net, err := netip.ParsePrefix("0.0.0.0/0")
 		if err != nil {
 			msg = fmt.Sprintf("Somehow 0.0.0.0 is not a valid IP: %v", err)
 		}
-		src = IPNetwork{ip: ip, isHost: false, isAny: true}
+		src = IPNetwork{ip: net, isHost: false, isAny: true}
 		remaining = v[1:]
 	case "host":
 		ip, err := netip.ParseAddr(v[1])
 		if err != nil {
-			msg = fmt.Sprintf("%s invalid host IP: %v", v[1], err)
+			msg = fmt.Sprintf("'%s' is invalid host IP: %v", v[1], err)
 		}
-		src = IPNetwork{ip: ip, isHost: true, isAny: false}
+		net := netip.PrefixFrom(ip, 32)
+		src = IPNetwork{ip: net, isHost: true, isAny: false}
 		remaining = v[2:]
 	default:
 		ip, err := netip.ParseAddr(v[0])
 		if err != nil {
-			msg = fmt.Sprintf("%s is not a valid IP address: %v", v[0], err)
+			msg = fmt.Sprintf("'%s' is not a valid IP address: %v", v[0], err)
 		}
-		src = IPNetwork{ip: ip, isHost: false, isAny: false}
+		prefixLen, err := prefixFromWildcard(v[1])
+		if err != nil {
+			msg = fmt.Sprintf("%v", err)
+		}
+		net := netip.PrefixFrom(ip, prefixLen)
+		src = IPNetwork{ip: net, isHost: false, isAny: false}
 		remaining = v[2:]
 	}
 	if src.ip.IsValid() {
 		return src, remaining, nil
 	}
 	return src, remaining, errors.New(msg)
+}
+
+func prefixFromWildcard(s string) (int, error) {
+	octets := strings.Split(s, ".")
+	// number of bits set to 1 in wildcard
+	bits := 0
+	var msg string
+	fail := false
+	// if len(octets) != 4 {
+	// 	msg = fmt.Sprintf("'%s' could not be converted into 4 octets", s)
+	// 	return -1, errors.New(msg)
+	// }
+	for i, octet := range octets {
+		num, err := strconv.Atoi(octet)
+		if err != nil {
+			fail = true
+			msg = fmt.Sprintf("unable to parse octect %d of wildcard: %v", i, err)
+		}
+		if num > 0 {
+			bits += (num + 1) / 32
+		}
+	}
+	if fail {
+		return -1, errors.New(msg)
+	}
+	return 32 - bits, nil
+}
+
+func wildcardFromPrefix(i int) string {
+	oct := make([]int, 4)
+	l := 32 - i
+	for j := 3; j > -1; j-- {
+		var o int
+		if l >= 8 {
+			o = 8
+			l = l - 8
+		} else {
+			o = l
+			l = 0
+		}
+		if o > 0 {
+			oct[j] = (o * 32) - 1
+		} else {
+			oct[j] = 0
+		}
+	}
+	return fmt.Sprintf("%d.%d.%d.%d", oct[0], oct[1], oct[2], oct[3])
 }
 
 type TransportProtocol struct {
