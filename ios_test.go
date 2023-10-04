@@ -3,6 +3,7 @@ package ios
 import (
 	"fmt"
 	"os"
+
 	// "strings"
 	"testing"
 )
@@ -82,6 +83,27 @@ func TestWildcardFromPrefix(t *testing.T) {
 		got := wildcardFromPrefix(tc.input)
 		if got != tc.want {
 			t.Errorf("test %d: given: %d, expected: %s, got: %s", i+1, tc.input, tc.want, got)
+		}
+	}
+}
+
+func TestParsePort(t *testing.T) {
+	type test struct {
+		input []string
+		want  string
+	}
+
+	tests := []test{
+		{input: []string{"eq", "bgp", "foo"}, want: "eq bgp"},
+	}
+
+	for i, tc := range tests {
+		m, p, _, e := parsePort(tc.input)
+		if e != nil {
+			t.Errorf("failed to parse input: %s, got: %v", tc.input, e)
+		}
+		if fmt.Sprintf("%s %s", m, p) != tc.want {
+			t.Errorf("test %d: given: %s, expected: %s, got: %s %s", i+1, tc.input, tc.want, m, p)
 		}
 	}
 }

@@ -152,6 +152,7 @@ type PortMatch struct {
 
 type PortMatcher interface {
 	Match(TransportProtocol) bool
+	String() string
 }
 
 func (p PortMatch) String() string {
@@ -164,6 +165,10 @@ type PortEqual struct {
 
 func (p PortEqual) Match(o TransportProtocol) bool {
 	return false
+}
+
+func (p PortEqual) String() string {
+	return p.name
 }
 
 func parsePort(v []string) (PortMatcher, TransportProtocol, []string, error) {
@@ -183,7 +188,13 @@ func parsePort(v []string) (PortMatcher, TransportProtocol, []string, error) {
 }
 
 func parseTransportProtocol(v []string) (TransportProtocol, []string, error) {
-	return TransportProtocol{"foo"}, v, nil
+	switch v[0] {
+	case "bgp":
+		return BGP, v[1:], nil
+	default:
+		msg := fmt.Sprintf("Unrecognised protocol %s", v[0])
+		return TransProto{}, v, errors.New(msg)
+	}
 }
 
 type IPNetwork struct {
@@ -288,6 +299,27 @@ func wildcardFromPrefix(i int) string {
 	return fmt.Sprintf("%d.%d.%d.%d", oct[0], oct[1], oct[2], oct[3])
 }
 
-type TransportProtocol struct {
-	name string
+type TransportProtocol interface {
+	String() string
+	Integer() uint8
+	Compare(TransProto) bool
 }
+
+type TransProto struct {
+	name   string
+	number uint8
+}
+
+func (t TransProto) String() string {
+	return t.name
+}
+
+func (t TransProto) Integer() uint8 {
+	return t.number
+}
+
+func (t TransProto) Compare(o TransProto) bool {
+	return t.number == o.number
+}
+
+var BGP = TransProto{"bgp", 179}
