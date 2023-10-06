@@ -17,8 +17,7 @@ func GetACL(name string, cfg string, acl_type string) ([]string, error) {
 		}
 	}
 	if len(acl) == 0 {
-		msg := fmt.Sprintf("No such ACL named %s found", name)
-		return nil, errors.New(msg)
+		return acl, fmt.Errorf("No such ACL named %s found", name)
 	}
 	return acl, nil
 }
@@ -31,30 +30,29 @@ type ACL struct {
 func NewACL(s []string) (ACL, error) {
 	acl := ACL{}
 	for i, ace := range s {
-		msg := fmt.Sprintf("Failed to parse ACE '%s'", ace)
+		msg := fmt.Errorf("Failed to parse ACE '%s'", ace)
 		v := strings.Split(ace, " ")
 		id, err := strconv.ParseInt(v[1], 10, 8)
 		if err != nil {
-			msg := fmt.Sprintf("Failed to parse ACL ID from %s, got %v", ace, err)
-			return acl, errors.New(msg)
+			return acl, fmt.Errorf("Failed to parse ACL ID from %s, got %v", ace, err)
 		}
 		acl.id = int8(id)
 		action, err := parseAction(v[2])
 		if err != nil {
-			return acl, errors.Join(errors.New(msg), err)
+			return acl, errors.Join(msg, err)
 		}
 		proto := parseIPProtocol(v[3])
 		srcAddr, remaining, err := parseAddr(v[4:])
 		if err != nil {
-			return acl, errors.Join(errors.New(msg), err)
+			return acl, errors.Join(msg, err)
 		}
 		srcMatch, srcPort, remaining, err := parsePort(remaining)
 		if err != nil {
-			return acl, errors.Join(errors.New(msg), err)
+			return acl, errors.Join(msg, err)
 		}
 		dstAddr, remaining, err := parseAddr(remaining)
 		if err != nil {
-			return acl, errors.Join(errors.New(msg), err)
+			return acl, errors.Join(msg, err)
 		}
 		a := ACE{int8(i), action, proto, srcAddr, srcMatch, srcPort, dstAddr}
 		acl.ace = append(acl.ace, a)
@@ -192,8 +190,7 @@ func parseTransportProtocol(v []string) (TransportProtocol, []string, error) {
 	case "bgp":
 		return BGP, v[1:], nil
 	default:
-		msg := fmt.Sprintf("Unrecognised protocol %s", v[0])
-		return TransProto{}, v, errors.New(msg)
+		return TransProto{}, v, fmt.Errorf("Unrecognised protocol %s", v[0])
 	}
 }
 
@@ -215,20 +212,20 @@ func (ip IPNetwork) String() string {
 
 func parseAddr(v []string) (IPNetwork, []string, error) {
 	var src IPNetwork
-	var msg string
+	var msg error
 	var remaining []string
 	switch v[0] {
 	case "any":
 		net, err := netip.ParsePrefix("0.0.0.0/0")
 		if err != nil {
-			msg = fmt.Sprintf("Somehow 0.0.0.0 is not a valid IP: %v", err)
+			msg = fmt.Errorf("Somehow 0.0.0.0 is not a valid IP: %w", err)
 		}
 		src = IPNetwork{ip: net, isHost: false, isAny: true}
 		remaining = v[1:]
 	case "host":
 		ip, err := netip.ParseAddr(v[1])
 		if err != nil {
-			msg = fmt.Sprintf("'%s' is invalid host IP: %v", v[1], err)
+			msg = fmt.Errorf("'%s' is invalid host IP: %w", v[1], err)
 		}
 		net := netip.PrefixFrom(ip, 32)
 		src = IPNetwork{ip: net, isHost: true, isAny: false}
@@ -236,27 +233,24 @@ func parseAddr(v []string) (IPNetwork, []string, error) {
 	default:
 		ip, err := netip.ParseAddr(v[0])
 		if err != nil {
-			msg = fmt.Sprintf("'%s' is not a valid IP address: %v", v[0], err)
+			msg = fmt.Errorf("'%s' is not a valid IP address: %w", v[0], err)
 		}
 		prefixLen, err := prefixFromWildcard(v[1])
 		if err != nil {
-			msg = fmt.Sprintf("%v", err)
+			msg = fmt.Errorf("%w", err)
 		}
 		net := netip.PrefixFrom(ip, prefixLen)
 		src = IPNetwork{ip: net, isHost: false, isAny: false}
 		remaining = v[2:]
 	}
-	if src.ip.IsValid() {
-		return src, remaining, nil
-	}
-	return src, remaining, errors.New(msg)
+	return src, remaining, msg
 }
 
 func prefixFromWildcard(s string) (int, error) {
 	octets := strings.Split(s, ".")
 	// number of bits set to 1 in wildcard
 	bits := 0
-	var msg string
+	var msg error
 	fail := false
 	// if len(octets) != 4 {
 	// 	msg = fmt.Sprintf("'%s' could not be converted into 4 octets", s)
@@ -266,14 +260,14 @@ func prefixFromWildcard(s string) (int, error) {
 		num, err := strconv.Atoi(octet)
 		if err != nil {
 			fail = true
-			msg = fmt.Sprintf("unable to parse octect %d of wildcard: %v", i, err)
+			msg = fmt.Errorf("unable to parse octect %d of wildcard: %w", i, err)
 		}
 		if num > 0 {
 			bits += (num + 1) / 32
 		}
 	}
 	if fail {
-		return -1, errors.New(msg)
+		return -1, msg
 	}
 	return 32 - bits, nil
 }
