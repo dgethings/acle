@@ -54,7 +54,8 @@ func NewACL(s []string) (ACL, error) {
 		if err != nil {
 			return acl, errors.Join(msg, err)
 		}
-		a := ACE{int8(i), action, proto, srcAddr, srcMatch, srcPort, dstAddr}
+		dstMatch, dstPort, remaining, err := parsePort(remaining)
+		a := ACE{int8(i), action, proto, srcAddr, srcMatch, srcPort, dstAddr, dstMatch, dstPort}
 		acl.ace = append(acl.ace, a)
 	}
 	return acl, nil
@@ -91,7 +92,8 @@ type ACE struct {
 	SrcMatch   PortMatcher
 	SrcPort    TransportProtocol
 	DestPrefix IPNetwork
-	// DestPort   TransportProtocol
+	DestMatch  PortMatcher
+	DestPort   TransportProtocol
 }
 
 func (ace ACE) String() string {
@@ -211,47 +213,40 @@ func (ip IPNetwork) String() string {
 }
 
 func parseAddr(v []string) (IPNetwork, []string, error) {
-	var src IPNetwork
+	var net IPNetwork
 	var msg error
-	var remaining []string
 	switch v[0] {
 	case "any":
-		net, err := netip.ParsePrefix("0.0.0.0/0")
+		prefix, err := netip.ParsePrefix("0.0.0.0/0")
 		if err != nil {
-			msg = fmt.Errorf("Somehow 0.0.0.0 is not a valid IP: %w", err)
+			return net, v, fmt.Errorf("Somehow 0.0.0.0 is not a valid IP: %w", err)
 		}
-		src = IPNetwork{ip: net, isHost: false, isAny: true}
-		remaining = v[1:]
+		return IPNetwork{ip: prefix, isHost: false, isAny: true}, v[1:], msg
 	case "host":
 		ip, err := netip.ParseAddr(v[1])
 		if err != nil {
-			msg = fmt.Errorf("'%s' is invalid host IP: %w", v[1], err)
+			return net, v, fmt.Errorf("'%s' is invalid host IP: %w", v[1], err)
 		}
 		net := netip.PrefixFrom(ip, 32)
-		src = IPNetwork{ip: net, isHost: true, isAny: false}
-		remaining = v[2:]
+		return IPNetwork{ip: net, isHost: true, isAny: false}, v[2:], msg
 	default:
 		ip, err := netip.ParseAddr(v[0])
 		if err != nil {
-			msg = fmt.Errorf("'%s' is not a valid IP address: %w", v[0], err)
+			return net, v, fmt.Errorf("'%s' is not a valid IP address: %w", v[0], err)
 		}
 		prefixLen, err := prefixFromWildcard(v[1])
 		if err != nil {
-			msg = fmt.Errorf("%w", err)
+			return net, v, fmt.Errorf("%w", err)
 		}
 		net := netip.PrefixFrom(ip, prefixLen)
-		src = IPNetwork{ip: net, isHost: false, isAny: false}
-		remaining = v[2:]
+		return IPNetwork{ip: net, isHost: false, isAny: false}, v[2:], msg
 	}
-	return src, remaining, msg
 }
 
 func prefixFromWildcard(s string) (int, error) {
 	octets := strings.Split(s, ".")
 	// number of bits set to 1 in wildcard
 	bits := 0
-	var msg error
-	fail := false
 	// if len(octets) != 4 {
 	// 	msg = fmt.Sprintf("'%s' could not be converted into 4 octets", s)
 	// 	return -1, errors.New(msg)
@@ -259,15 +254,11 @@ func prefixFromWildcard(s string) (int, error) {
 	for i, octet := range octets {
 		num, err := strconv.Atoi(octet)
 		if err != nil {
-			fail = true
-			msg = fmt.Errorf("unable to parse octect %d of wildcard: %w", i, err)
+			return -1, fmt.Errorf("unable to parse octect %d of wildcard: %w", i, err)
 		}
 		if num > 0 {
 			bits += (num + 1) / 32
 		}
-	}
-	if fail {
-		return -1, msg
 	}
 	return 32 - bits, nil
 }
