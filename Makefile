@@ -6,7 +6,7 @@ run: build
 	./bin/acle -if ./test_data/sample.ios -acl_id 103
 
 test:
-	go test -v
+	go test -v ./...
 
 coverage:
 	go test -coverprofile=c.out
