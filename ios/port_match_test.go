@@ -11,8 +11,12 @@ func TestParsePort(t *testing.T) {
 	}
 
 	tests := []test{
-		{input: []string{"eq", "bgp", "foo"}, want: "eq bgp"},
 		{input: []string{"any", "any"}, want: ""},
+		{input: []string{"eq", "bgp", "foo"}, want: "eq bgp"},
+		{input: []string{"gt", "1024"}, want: "gt 1024"},
+		{input: []string{"lt", "1024"}, want: "lt 1024"},
+		{input: []string{"range", "ftp", "ftp-data"}, want: "range ftp ftp-data"},
+		{input: []string{"eq", "179"}, want: "eq bgp"},
 	}
 
 	for i, tc := range tests {

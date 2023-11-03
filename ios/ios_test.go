@@ -3,8 +3,6 @@ package ios
 import (
 	"fmt"
 	"os"
-
-	// "strings"
 	"testing"
 )
 
@@ -21,27 +19,6 @@ func TestGetAcl(t *testing.T) {
 	_, err := GetACL("103", cfg, "standard")
 	if err != nil {
 		t.Error(err)
-	}
-}
-
-func TestParseAction(t *testing.T) {
-	type test struct {
-		input string
-		want  string
-	}
-
-	tests := []test{
-		{input: "permit", want: "permit"},
-		{input: "deny", want: "deny"},
-		{input: "", want: ""},
-		{input: "bogus", want: ""},
-	}
-
-	for i, tc := range tests {
-		got, err := parseAction(tc.input)
-		if fmt.Sprintf("%s", got) != tc.want {
-			t.Errorf("test %d: wanted: %s, got: %s, error: %v", i+1, tc.want, got, err)
-		}
 	}
 }
 
@@ -83,27 +60,6 @@ func TestWildcardFromPrefix(t *testing.T) {
 		got := wildcardFromPrefix(tc.input)
 		if got != tc.want {
 			t.Errorf("test %d: given: %d, expected: %s, got: %s", i+1, tc.input, tc.want, got)
-		}
-	}
-}
-
-func TestParsePort(t *testing.T) {
-	type test struct {
-		input []string
-		want  string
-	}
-
-	tests := []test{
-		{input: []string{"eq", "bgp", "foo"}, want: "eq bgp"},
-	}
-
-	for i, tc := range tests {
-		m, p, _, e := parsePort(tc.input)
-		if e != nil {
-			t.Errorf("failed to parse input: %s, got: %v", tc.input, e)
-		}
-		if fmt.Sprintf("%s %s", m, p) != tc.want {
-			t.Errorf("test %d: given: %s, expected: %s, got: %s %s", i+1, tc.input, tc.want, m, p)
 		}
 	}
 }

@@ -7,28 +7,8 @@ import (
 	"log"
 	"os"
 
-	ios "github.com/dgethings/acle"
+	ios "github.com/dgethings/acle/ios"
 )
-
-type Protocol struct {
-	number int
-	name   string
-}
-
-func (p Protocol) String() string {
-	return p.name
-}
-
-func (p Protocol) Int() int {
-	return p.number
-}
-
-func (p Protocol) equals(other Protocol) bool {
-	if (p.number == 0) || (other.number == 0) {
-		return true
-	}
-	return p.number == other.number
-}
 
 func readFile(f string) string {
 	b, err := os.ReadFile(f)
@@ -40,7 +20,6 @@ func readFile(f string) string {
 
 func readStdin() string {
 	stdin, err := io.ReadAll(os.Stdin)
-
 	if err != nil {
 		log.Fatalf("Failed to read stdin, got %v", err)
 	}
@@ -48,7 +27,6 @@ func readStdin() string {
 }
 
 func main() {
-	var cfg string
 	var f string
 	flag.StringVar(&f, "if", "", "Path to input config file")
 	var acl_id string
@@ -56,6 +34,7 @@ func main() {
 	var acl_type string
 	flag.StringVar(&acl_type, "acl_type", "standard", "Type of ACL. Either 'standard' or 'extended', default is 'standard'")
 	flag.Parse()
+	var cfg string
 	if f != "" {
 		cfg = readFile(f)
 	} else {
